@@ -1,0 +1,33 @@
+public class InvoiceValidationHelper 
+{
+    public static void insertInvoiceValidation(List<invoice__c> newRec, Map<id,invoice__c> oldMapRec, Boolean isInsert)
+    {
+        SET<ID> accIds = new SET<ID>();
+        for(invoice__c invoiceRec :newRec)
+        {
+            IF(invoiceRec.InvoiceLKwithAccount__c <> NULL)
+            {
+                accIds.add(invoiceRec.InvoiceLKwithAccount__c);
+                system.debug('accIds>>>'+accIds);   
+            }
+        }        
+        
+        Map<Id, Account> invAccMap = new  Map<Id, Account>([SELECT ID,CreateInvoice__c,(SELECT ID,StatusInvoice__c from invoices__r WHERE StatusInvoice__c = 'Open') from Account WHERE id =: accIds]);
+		
+        for(invoice__c invRecData : newRec)
+        {
+            if(isInsert && invRecData.StatusInvoice__c == 'Open'){
+                if(invAccMap.get(invRecData.InvoiceLKwithAccount__c).invoices__r.size()>1){
+                    invRecData.addError('You cant select more than one Invoices!!');
+                    
+                }
+            }
+            if(!isInsert && oldMapRec.get(invRecData.id).StatusInvoice__c != invRecData.StatusInvoice__c && invRecData.StatusInvoice__c=='Open'){
+                if(invAccMap.get(invRecData.InvoiceLKwithAccount__c).invoices__r.size()>1){
+                    invRecData.addError('You cant select more than one Invoices!!');
+                }
+            }
+        }
+    }
+    
+}
